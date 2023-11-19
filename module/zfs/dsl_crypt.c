@@ -266,6 +266,38 @@ spa_crypto_key_compare(const void *a, const void *b)
 	return (0);
 }
 
+int
+dmu_objset_crypto_key_compare(objset_t *osa, objset_t *osb)
+{
+	dsl_crypto_key_t *dcka = NULL;
+	dsl_crypto_key_t *dckb = NULL;
+	int ret;
+	uint64_t obja, objb;
+	spa_t *spa;
+
+	spa = dmu_objset_spa(osa);
+	if (spa != dmu_objset_spa(osb))
+		return (1);
+	obja = dmu_objset_ds(osa)->ds_object;
+	objb = dmu_objset_ds(osb)->ds_object;
+
+	ret = spa_keystore_lookup_key(spa, obja, FTAG, &dcka);
+	if (ret != 0)
+		return (ret);
+	ret = spa_keystore_lookup_key(spa, objb, FTAG, &dckb);
+	if (ret != 0) {
+		spa_keystore_dsl_key_rele(spa, dcka, FTAG);
+		return (ret);
+	}
+
+	ret = spa_crypto_key_compare(dcka, dckb);
+
+	spa_keystore_dsl_key_rele(spa, dcka, FTAG);
+	spa_keystore_dsl_key_rele(spa, dckb, FTAG);
+
+	return (ret);
+}
+
 static int
 spa_key_mapping_compare(const void *a, const void *b)
 {
