@@ -44,10 +44,14 @@ function have_same_content
 #
 function get_same_blocks
 {
+    KEY=$5
+    if [ ${#KEY} -gt 0 ]; then
+        KEY="--key=$KEY"
+    fi
 	typeset zdbout=${TMPDIR:-$TEST_BASE_DIR}/zdbout.$$
-	zdb -vvvvv $1 -O $2 | \
+	zdb $KEY -vvvvv $1 -O $2 | \
 	    awk '/ L0 / { print l++ " " $3 " " $7 }' > $zdbout.a
-	zdb -vvvvv $3 -O $4 | \
+	zdb $KEY -vvvvv $3 -O $4 | \
 	    awk '/ L0 / { print l++ " " $3 " " $7 }' > $zdbout.b
 	echo $(sort $zdbout.a $zdbout.b | uniq -d | cut -f1 -d' ')
 }
