@@ -1111,7 +1111,7 @@ zfs_clone_range(znode_t *inzp, uint64_t *inoffp, znode_t *outzp,
 	 * share the same master key.
 	 */
 	if (inos != outos && inos->os_encrypted &&
-	    dmu_objset_crypto_key_compare(inos, outos) != 0) {
+	    !dmu_objset_crypto_master_keys_equal(inos, outos)) {
 		zfs_exit_two(inzfsvfs, outzfsvfs, FTAG);
 		return (SET_ERROR(EXDEV));
 	}

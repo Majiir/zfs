@@ -266,36 +266,20 @@ spa_crypto_key_compare(const void *a, const void *b)
 	return (0);
 }
 
-int
-dmu_objset_crypto_key_compare(objset_t *osa, objset_t *osb)
+boolean_t
+dmu_objset_crypto_master_keys_equal(objset_t *osa, objset_t *osb)
 {
-	dsl_crypto_key_t *dcka = NULL;
-	dsl_crypto_key_t *dckb = NULL;
-	int ret;
-	uint64_t obja, objb;
-	spa_t *spa;
+	uint64_t guida = 0;
+	uint64_t guidb = 0;
 
-	spa = dmu_objset_spa(osa);
-	if (spa != dmu_objset_spa(osb))
-		return (1);
-	obja = dmu_objset_ds(osa)->ds_object;
-	objb = dmu_objset_ds(osb)->ds_object;
-
-	ret = spa_keystore_lookup_key(spa, obja, FTAG, &dcka);
-	if (ret != 0)
-		return (ret);
-	ret = spa_keystore_lookup_key(spa, objb, FTAG, &dckb);
-	if (ret != 0) {
-		spa_keystore_dsl_key_rele(spa, dcka, FTAG);
-		return (ret);
+	if (spa_crypt_get_guid(dmu_objset_spa(osa), dmu_objset_id(osa), &guida) != 0) {
+		return (B_FALSE);
+	}
+	if (spa_crypt_get_guid(dmu_objset_spa(osb), dmu_objset_id(osb), &guidb) != 0) {
+		return (B_FALSE);
 	}
 
-	ret = spa_crypto_key_compare(dcka, dckb);
-
-	spa_keystore_dsl_key_rele(spa, dcka, FTAG);
-	spa_keystore_dsl_key_rele(spa, dckb, FTAG);
-
-	return (ret);
+	return (guida == guidb);
 }
 
 static int
@@ -2670,6 +2654,30 @@ dsl_dataset_crypt_stats(dsl_dataset_t *ds, nvlist_t *nv)
 			    ZFS_PROP_ENCRYPTION_ROOT, buf);
 		}
 	}
+}
+
+int
+spa_crypt_get_guid(spa_t *spa, uint64_t dsobj, uint64_t *guidp)
+{
+	int ret;
+	dsl_crypto_key_t *dck = NULL;
+	zio_crypt_key_t *key;
+
+	/* look up the key from the spa's keystore */
+	ret = spa_keystore_lookup_key(spa, dsobj, FTAG, &dck);
+	if (ret != 0)
+		goto error;
+
+	key = &dck->dck_key;
+	*guidp = key->zk_guid;
+
+	spa_keystore_dsl_key_rele(spa, dck, FTAG);
+	return (0);
+
+error:
+	if (dck != NULL)
+		spa_keystore_dsl_key_rele(spa, dck, FTAG);
+	return (ret);
 }
 
 int

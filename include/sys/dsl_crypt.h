@@ -206,7 +206,7 @@ void dsl_dataset_promote_crypt_sync(dsl_dir_t *target, dsl_dir_t *origin,
     dmu_tx_t *tx);
 int dmu_objset_create_crypt_check(dsl_dir_t *parentdd,
     dsl_crypto_params_t *dcp, boolean_t *will_encrypt);
-int dmu_objset_crypto_key_compare(objset_t *osa, objset_t *osb);
+boolean_t dmu_objset_crypto_master_keys_equal(objset_t *osa, objset_t *osb);
 void dsl_dataset_create_crypt_sync(uint64_t dsobj, dsl_dir_t *dd,
     struct dsl_dataset *origin, dsl_crypto_params_t *dcp, dmu_tx_t *tx);
 uint64_t dsl_crypto_key_create_sync(uint64_t crypt, dsl_wrapping_key_t *wkey,
@@ -214,6 +214,7 @@ uint64_t dsl_crypto_key_create_sync(uint64_t crypt, dsl_wrapping_key_t *wkey,
 uint64_t dsl_crypto_key_clone_sync(dsl_dir_t *origindd, dmu_tx_t *tx);
 void dsl_crypto_key_destroy_sync(uint64_t dckobj, dmu_tx_t *tx);
 
+int spa_crypt_get_guid(spa_t *spa, uint64_t dsobj, uint64_t *guidp);
 int spa_crypt_get_salt(spa_t *spa, uint64_t dsobj, uint8_t *salt);
 int spa_do_crypt_mac_abd(boolean_t generate, spa_t *spa, uint64_t dsobj,
     abd_t *abd, uint_t datalen, uint8_t *mac);
